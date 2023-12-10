@@ -1,11 +1,16 @@
 const express = require("express");
 const connection = require("./db");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcrypt"); 4
+const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
-
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+  })
+);
 app.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
     try {
