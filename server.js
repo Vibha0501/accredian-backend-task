@@ -1,6 +1,6 @@
 const express = require("express");
-const connection = require("./db");
-const bcrypt = require("bcrypt"); 4
+const connectDB = require("./db"); // Import the function to establish DB connection
+const bcrypt = require("bcrypt");
 const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -11,30 +11,33 @@ app.use(
     origin: "http://localhost:3000",
   })
 );
+
 app.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
-    try {
-        if (!username || !email || !password) {
-          return res.status(400).json({ message: "Please provide all fields" });
-        }
-        console.log("Received user data:", { username, email, password });
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const sql = "INSERT INTO user (username, email, password) VALUES (?, ?, ?)";
-        connection.query(sql, [username, email, hashedPassword], (err, results) => {
-            if (err) {
-                console.error("Error inserting user:", err);
-                if (err.code === "ER_DUP_ENTRY") {
-                    return res.status(400).json({ message: "Email already exists" });
-                }
-                return res.status(500).json({ message: "Error registering user" });
-            }
-            res.status(201).json({ message: "User registered successfully" });
-        });
+  try {
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "Please provide all fields" });
     }
-    catch (error) {
-    console.error('Error hashing password:', error);
-    res.status(500).json({ message: 'Error registering user' });
+
+    console.log("Received user data:", { username, email, password });
+
+    const connection = await connectDB(); // Establish database connection
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const sql = "INSERT INTO user (username, email, password) VALUES (?, ?, ?)";
+    const [results] = await connection.execute(sql, [
+      username,
+      email,
+      hashedPassword,
+    ]);
+
+    await connection.end(); // Close the connection after the query execution
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    console.error("Error registering user:", error);
+    res.status(500).json({ message: "Error registering user" });
   }
 });
 
